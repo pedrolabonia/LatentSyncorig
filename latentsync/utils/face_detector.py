@@ -1,15 +1,9 @@
-# Import our ONNXRuntime patch before anything else
-from latentsync.utils import onnx_patch
-
 import numpy as np
 import torch
 import os
 from insightface.app import FaceAnalysis
 
 INSIGHTFACE_DETECT_SIZE = 640
-
-# Additional environment variables for InsightFace
-os.environ['INSIGHTFACE_THREAD_AFFINITY'] = '0'  # Custom variable that might be used by InsightFace
 
 
 class FaceDetector:
@@ -18,10 +12,29 @@ class FaceDetector:
         
         # Use default providers but with explicit device_id
         print(f"Initializing FaceAnalysis with GPU (device_id={device_id})")
+        
+        # Pass additional kwargs to control session options
+        session_options = {
+            'intra_op_num_threads': 1,
+            'execution_mode': 'sequential',
+            'graph_optimization_level': 'ORT_ENABLE_ALL',
+        }
+        
+        provider_options = [
+            {
+                'device_id': device_id,
+                'arena_extend_strategy': 'kNextPowerOfTwo',
+                'cudnn_conv_algo_search': 'DEFAULT',
+                'do_copy_in_default_stream': True,
+            }
+        ]
+        
         self.app = FaceAnalysis(
             allowed_modules=["detection", "landmark_2d_106"],
             root="checkpoints/auxiliary",
             providers=["CUDAExecutionProvider"],
+            session_options=session_options,
+            provider_options=provider_options,
         )
         self.app.prepare(ctx_id=device_id, det_size=(INSIGHTFACE_DETECT_SIZE, INSIGHTFACE_DETECT_SIZE))
 

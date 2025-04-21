@@ -1,13 +1,27 @@
 # Prediction interface for Cog ⚙️
 # https://cog.run/python
 
-# Import our ONNXRuntime patch before anything else
-import sys
+# Set ONNXRuntime environment variables before any imports
 import os
-# Add the current directory to the path so we can import our modules
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from latentsync.utils import onnx_patch
+os.environ['ORT_DISABLE_THREAD_AFFINITY'] = '1'
+os.environ['ORT_THREAD_POOL_ALLOW_SPINNING'] = '0'
+os.environ['OMP_NUM_THREADS'] = '1'
+os.environ['ORT_NUM_THREADS'] = '1'
+os.environ['ONNXRUNTIME_DISABLE_TELEMETRY'] = '1'
 
+# Initialize ONNXRuntime with our desired settings before any other imports
+import onnxruntime as ort
+print(f"Initializing ONNXRuntime {ort.__version__} with thread affinity disabled")
+print(f"Available providers: {ort.get_available_providers()}")
+
+# Create a session options object with our desired settings
+session_options = ort.SessionOptions()
+session_options.intra_op_num_threads = 1
+session_options.inter_op_num_threads = 1
+session_options.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
+print("Created ONNXRuntime SessionOptions with thread affinity disabled")
+
+# Now import everything else
 from cog import BasePredictor, Input, Path
 import time
 import subprocess
@@ -63,11 +77,11 @@ class Predictor(BasePredictor):
         output_path = "/tmp/video_out.mp4"
         env = os.environ.copy()
         
-        # Environment variables are already set in onnx_patch.py
+        # Environment variables are already set at the module level
         # Just pass them through to the subprocess
         
         # Log the environment variables
-        print(f"Using environment variables from onnx_patch.py")
+        print(f"Using environment variables set at the beginning of predict.py")
         # --- End added lines ---
 
         # Command as a list for subprocess.run
