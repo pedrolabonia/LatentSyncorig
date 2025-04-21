@@ -24,7 +24,7 @@ class AlignmentPipeline:
         mask_image_path = "latentsync/utils/mask.png"
 
         mask_image = load_fixed_mask(height, mask_image_path)
-        self.image_processor = ImageProcessor(height, mask=mask, device="cuda", mask_image=mask_image)
+        self.image_processor = ImageProcessor(height, device="cuda")
 
         cap = cv2.VideoCapture(video_path)
 
