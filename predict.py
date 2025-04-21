@@ -1,8 +1,14 @@
 # Prediction interface for Cog ⚙️
 # https://cog.run/python
 
-from cog import BasePredictor, Input, Path
+# Import our ONNXRuntime patch before anything else
+import sys
 import os
+# Add the current directory to the path so we can import our modules
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from latentsync.utils import onnx_patch
+
+from cog import BasePredictor, Input, Path
 import time
 import subprocess
 
@@ -57,24 +63,11 @@ class Predictor(BasePredictor):
         output_path = "/tmp/video_out.mp4"
         env = os.environ.copy()
         
-        # Set thread count limits
-        env['OMP_NUM_THREADS'] = '1'
-        env['ORT_NUM_THREADS'] = '1'
+        # Environment variables are already set in onnx_patch.py
+        # Just pass them through to the subprocess
         
-        # Disable thread affinity in ONNXRuntime - this is the key fix for the errors
-        env['ORT_DISABLE_THREAD_AFFINITY'] = '1'
-        
-        # Additional optimizations for containerized environments
-        env['ORT_THREAD_POOL_ALLOW_SPINNING'] = '0'
-        
-        # Additional environment variables that might help
-        env['ONNXRUNTIME_DISABLE_TELEMETRY'] = '1'
-        
-        # Log all environment variables
-        print(f"Setting OMP_NUM_THREADS={env['OMP_NUM_THREADS']}")
-        print(f"Setting ORT_NUM_THREADS={env['ORT_NUM_THREADS']}")
-        print(f"Setting ORT_DISABLE_THREAD_AFFINITY={env['ORT_DISABLE_THREAD_AFFINITY']}")
-        print(f"Setting ORT_THREAD_POOL_ALLOW_SPINNING={env['ORT_THREAD_POOL_ALLOW_SPINNING']}")
+        # Log the environment variables
+        print(f"Using environment variables from onnx_patch.py")
         # --- End added lines ---
 
         # Command as a list for subprocess.run

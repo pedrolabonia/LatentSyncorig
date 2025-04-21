@@ -8,31 +8,20 @@ from insightface.app import FaceAnalysis
 
 INSIGHTFACE_DETECT_SIZE = 640
 
+# Additional environment variables for InsightFace
+os.environ['INSIGHTFACE_THREAD_AFFINITY'] = '0'  # Custom variable that might be used by InsightFace
+
 
 class FaceDetector:
     def __init__(self, device="cuda"):
         device_id = cuda_to_int(device)
         
-        # Configure provider options to prevent thread affinity issues
-        provider_options = [
-            {
-                'device_id': device_id,
-                'arena_extend_strategy': 'kNextPowerOfTwo',
-                'cudnn_conv_algo_search': 'DEFAULT',
-                'do_copy_in_default_stream': True,
-            },
-            {
-                'arena_extend_strategy': 'kNextPowerOfTwo',
-            }
-        ]
-        
-        # Use both CUDA and CPU providers with explicit options
+        # Use default providers but with explicit device_id
         print(f"Initializing FaceAnalysis with GPU (device_id={device_id})")
         self.app = FaceAnalysis(
             allowed_modules=["detection", "landmark_2d_106"],
             root="checkpoints/auxiliary",
-            providers=["CUDAExecutionProvider", "CPUExecutionProvider"],
-            provider_options=provider_options,
+            providers=["CUDAExecutionProvider"],
         )
         self.app.prepare(ctx_id=device_id, det_size=(INSIGHTFACE_DETECT_SIZE, INSIGHTFACE_DETECT_SIZE))
 
