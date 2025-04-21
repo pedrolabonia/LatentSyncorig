@@ -1,16 +1,25 @@
 from insightface.app import FaceAnalysis
 import numpy as np
 import torch
+import onnxruntime
 
 INSIGHTFACE_DETECT_SIZE = 640
 
 
 class FaceDetector:
     def __init__(self, device="cuda"):
+        sess_options = onnxruntime.SessionOptions()
+        # Explicitly set the number of threads.
+        # Try a value closer to the number of cores, but less than total.
+        # For 10 cores, let's try 4 or 8 for intra_op. Keep inter_op low.
+        sess_options.intra_op_num_threads = 8 # You can try 8 if 4 works
+        sess_options.inter_op_num_threads = 1
+
         self.app = FaceAnalysis(
             allowed_modules=["detection", "landmark_2d_106"],
             root="checkpoints/auxiliary",
             providers=["CUDAExecutionProvider"],
+            sess_options=sess_options,
         )
         self.app.prepare(ctx_id=cuda_to_int(device), det_size=(INSIGHTFACE_DETECT_SIZE, INSIGHTFACE_DETECT_SIZE))
 
