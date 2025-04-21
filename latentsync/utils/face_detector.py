@@ -1,49 +1,19 @@
-from insightface.app import FaceAnalysis
+# Import our ONNXRuntime patch before anything else
+from latentsync.utils import onnx_patch
+
 import numpy as np
 import torch
 import os
+from insightface.app import FaceAnalysis
 
 INSIGHTFACE_DETECT_SIZE = 640
-
-# Set ONNXRuntime environment variables at module level
-# This ensures they're set before any ONNX models are loaded
-os.environ['ORT_DISABLE_THREAD_AFFINITY'] = '1'
-os.environ['ORT_THREAD_POOL_ALLOW_SPINNING'] = '0'
-
-# Print debug information
-print("face_detector.py: Setting ONNXRuntime environment variables")
-print(f"ORT_DISABLE_THREAD_AFFINITY={os.environ.get('ORT_DISABLE_THREAD_AFFINITY')}")
-print(f"ORT_THREAD_POOL_ALLOW_SPINNING={os.environ.get('ORT_THREAD_POOL_ALLOW_SPINNING')}")
-print(f"OMP_NUM_THREADS={os.environ.get('OMP_NUM_THREADS')}")
-print(f"ORT_NUM_THREADS={os.environ.get('ORT_NUM_THREADS')}")
-
-# Try to import onnxruntime directly to check if it's available
-try:
-    import importlib
-    ort_spec = importlib.util.find_spec("onnxruntime")
-    print(f"ONNXRuntime found: {ort_spec is not None}")
-    if ort_spec is not None:
-        import onnxruntime as ort
-        print(f"ONNXRuntime version: {ort.__version__}")
-        print(f"Available providers: {ort.get_available_providers()}")
-        # Try to create a session options object to see if it works
-        try:
-            session_options = ort.SessionOptions()
-            session_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
-            session_options.intra_op_num_threads = 1
-            print("Successfully created ONNXRuntime SessionOptions")
-        except Exception as e:
-            print(f"Error creating ONNXRuntime SessionOptions: {e}")
-except ImportError:
-    print("ONNXRuntime not directly importable")
-except Exception as e:
-    print(f"Error checking ONNXRuntime: {e}")
 
 
 class FaceDetector:
     def __init__(self, device="cuda"):
-        # Configure provider options to prevent thread affinity issues
         device_id = cuda_to_int(device)
+        
+        # Configure provider options to prevent thread affinity issues
         provider_options = [
             {
                 'device_id': device_id,
@@ -57,6 +27,7 @@ class FaceDetector:
         ]
         
         # Use both CUDA and CPU providers with explicit options
+        print(f"Initializing FaceAnalysis with GPU (device_id={device_id})")
         self.app = FaceAnalysis(
             allowed_modules=["detection", "landmark_2d_106"],
             root="checkpoints/auxiliary",
