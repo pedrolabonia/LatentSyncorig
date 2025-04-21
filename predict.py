@@ -55,12 +55,30 @@ class Predictor(BasePredictor):
         config_path = "configs/unet/stage2.yaml"
         ckpt_path = "checkpoints/latentsync_unet.pt"
         output_path = "/tmp/video_out.mp4"
-        os.environ['OMP_NUM_THREADS'] = '1'
-        os.environ['ORT_NUM_THREADS'] = '1'
-        print(f"Setting OMP_NUM_THREADS={os.environ['OMP_NUM_THREADS']}")
-        print(f"Setting ORT_NUM_THREADS={os.environ['ORT_NUM_THREADS']}")
-        # Run the following command:
-        os.system(
-            f"python -m scripts.inference --unet_config_path {config_path} --inference_ckpt_path {ckpt_path} --inference_steps {inference_steps} --guidance_scale {str(guidance_scale)} --video_path {video_path} --audio_path {audio_path} --video_out_path {output_path} --seed {seed}"
-        )
+        env = os.environ.copy()
+        env['OMP_NUM_THREADS'] = '1'
+        env['ORT_NUM_THREADS'] = '1'
+        print(f"Setting OMP_NUM_THREADS={env['OMP_NUM_THREADS']}")
+        print(f"Setting ORT_NUM_THREADS={env['ORT_NUM_THREADS']}")
+        # --- End added lines ---
+
+        # Command as a list for subprocess.run
+        command = [
+            "python",
+            "-m",
+            "scripts.inference",
+            "--unet_config_path", config_path,
+            "--inference_ckpt_path", ckpt_path,
+            "--inference_steps", inference_steps,
+            "--guidance_scale", str(guidance_scale),
+            "--video_path", video_path,
+            "--audio_path", audio_path,
+            "--video_out_path", output_path,
+            "--seed", str(seed)
+        ]
+
+        # Run the command using subprocess.run
+        # Pass the modified environment explicitly
+        subprocess.run(command, check=True, env=env)
+
         return Path(output_path)
