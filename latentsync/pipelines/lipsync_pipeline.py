@@ -287,6 +287,7 @@ class LipsyncPipeline(DiffusionPipeline):
         if len(whisper_chunks) > len(video_frames):
             faces, boxes, affine_matrices = self.affine_transform_video(video_frames)
             num_loops = math.ceil(len(whisper_chunks) / len(video_frames))
+            print("num_loops", num_loops)   
             loop_video_frames = []
             loop_faces = []
             loop_boxes = []
@@ -302,15 +303,23 @@ class LipsyncPipeline(DiffusionPipeline):
                     loop_faces.append(faces.flip(0))
                     loop_boxes += boxes[::-1]
                     loop_affine_matrices += affine_matrices[::-1]
-
+            print("loop_video_frames", len(loop_video_frames))
+            print("loop_faces", len(loop_faces))
+            print("loop_boxes", len(loop_boxes))
+            print("loop_affine_matrices", len(loop_affine_matrices))
             video_frames = np.concatenate(loop_video_frames, axis=0)[: len(whisper_chunks)]
             faces = torch.cat(loop_faces, dim=0)[: len(whisper_chunks)]
             boxes = loop_boxes[: len(whisper_chunks)]
             affine_matrices = loop_affine_matrices[: len(whisper_chunks)]
+            print("video_frames", len(video_frames))
+            print("faces", len(faces))
+            print("boxes", len(boxes))
+            print("affine_matrices", len(affine_matrices))
+            
         else:
             video_frames = video_frames[: len(whisper_chunks)]
             faces, boxes, affine_matrices = self.affine_transform_video(video_frames)
-
+        print("will return")
         return video_frames, faces, boxes, affine_matrices
 
     @torch.no_grad()
