@@ -1,6 +1,7 @@
 # PyCharm files
 .idea/
 
+.cog
 # macOS dir files
 .DS_Store
 
