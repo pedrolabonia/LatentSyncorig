@@ -26,7 +26,7 @@ class FaceAnalysis:
         onnx_files = glob.glob(osp.join(self.model_dir, '*.onnx'))
         onnx_files = sorted(onnx_files)
         for onnx_file in onnx_files:
-            model = model_zoo.get_model(onnx_file, sess_options=sess_options **kwargs)
+            model = model_zoo.get_model(onnx_file, sess_options=sess_options, **kwargs)
             if model is None:
                 print('model not recognized:', onnx_file)
             elif allowed_modules is not None and model.taskname not in allowed_modules:
