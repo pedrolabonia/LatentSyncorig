@@ -1,9 +1,9 @@
+from __future__ import division
 import numpy as np
 import torch
 import os
 
 INSIGHTFACE_DETECT_SIZE = 640
-from __future__ import division
 
 import glob
 import os.path as osp
