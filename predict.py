@@ -1,8 +1,20 @@
 # Prediction interface for Cog ⚙️
 # https://cog.run/python
 
-from cog import BasePredictor, Input, Path
+# Set ONNXRuntime environment variables before any imports
+# This is critical to prevent thread affinity errors
 import os
+os.environ['ORT_DISABLE_THREAD_AFFINITY'] = '1'
+os.environ['ORT_THREAD_POOL_ALLOW_SPINNING'] = '0'
+os.environ['OMP_NUM_THREADS'] = '1'
+os.environ['ORT_NUM_THREADS'] = '1'
+print("Setting ONNXRuntime environment variables at module level")
+print(f"ORT_DISABLE_THREAD_AFFINITY={os.environ['ORT_DISABLE_THREAD_AFFINITY']}")
+print(f"ORT_THREAD_POOL_ALLOW_SPINNING={os.environ['ORT_THREAD_POOL_ALLOW_SPINNING']}")
+print(f"OMP_NUM_THREADS={os.environ['OMP_NUM_THREADS']}")
+print(f"ORT_NUM_THREADS={os.environ['ORT_NUM_THREADS']}")
+
+from cog import BasePredictor, Input, Path
 import time
 import subprocess
 
@@ -57,21 +69,19 @@ class Predictor(BasePredictor):
         output_path = "/tmp/video_out.mp4"
         env = os.environ.copy()
         
-        # Set thread count limits
+        # The environment variables are already set at the module level,
+        # but we'll pass them to the subprocess as well to be sure
         env['OMP_NUM_THREADS'] = '1'
         env['ORT_NUM_THREADS'] = '1'
-        
-        # Disable thread affinity in ONNXRuntime - this is the key fix for the errors
         env['ORT_DISABLE_THREAD_AFFINITY'] = '1'
-        
-        # Additional optimizations for containerized environments
         env['ORT_THREAD_POOL_ALLOW_SPINNING'] = '0'
         
-        # Log all environment variables
-        print(f"Setting OMP_NUM_THREADS={env['OMP_NUM_THREADS']}")
-        print(f"Setting ORT_NUM_THREADS={env['ORT_NUM_THREADS']}")
-        print(f"Setting ORT_DISABLE_THREAD_AFFINITY={env['ORT_DISABLE_THREAD_AFFINITY']}")
-        print(f"Setting ORT_THREAD_POOL_ALLOW_SPINNING={env['ORT_THREAD_POOL_ALLOW_SPINNING']}")
+        # Additional environment variables that might help
+        env['ONNXRUNTIME_DISABLE_TELEMETRY'] = '1'
+        env['ORT_TENSORRT_FP16_ENABLE'] = '0'
+        env['ORT_TENSORRT_ENGINE_CACHE_ENABLE'] = '0'
+        
+        print("Passing environment variables to subprocess")
         # --- End added lines ---
 
         # Command as a list for subprocess.run
