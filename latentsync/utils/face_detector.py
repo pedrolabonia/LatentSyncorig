@@ -9,32 +9,21 @@ INSIGHTFACE_DETECT_SIZE = 640
 class FaceDetector:
     def __init__(self, device="cuda"):
         device_id = cuda_to_int(device)
-        
+        import onnxruntime as ort
+
+        sess_options = ort.SessionOptions()
+        sess_options.intra_op_num_threads = 4
+        sess_options.add_session_config_entry('session.intra_op_thread_affinities', '0;1;2;3') # Bind threads to cores 0, 1, 2, and 3
         # Use default providers but with explicit device_id
         print(f"Initializing FaceAnalysis with GPU (device_id={device_id})")
         
         # Pass additional kwargs to control session options
-        session_options = {
-            'intra_op_num_threads': 1,
-            'execution_mode': 'sequential',
-            'graph_optimization_level': 'ORT_ENABLE_ALL',
-        }
-        
-        provider_options = [
-            {
-                'device_id': device_id,
-                'arena_extend_strategy': 'kNextPowerOfTwo',
-                'cudnn_conv_algo_search': 'DEFAULT',
-                'do_copy_in_default_stream': True,
-            }
-        ]
-        
+
         self.app = FaceAnalysis(
             allowed_modules=["detection", "landmark_2d_106"],
             root="checkpoints/auxiliary",
             providers=["CUDAExecutionProvider"],
-            session_options=session_options,
-            provider_options=provider_options,
+            sess_options=sess_options,
         )
         self.app.prepare(ctx_id=device_id, det_size=(INSIGHTFACE_DETECT_SIZE, INSIGHTFACE_DETECT_SIZE))
 
