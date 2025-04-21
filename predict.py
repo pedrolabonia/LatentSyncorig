@@ -58,6 +58,6 @@ class Predictor(BasePredictor):
 
         # Run the following command:
         os.system(
-            f"python -m scripts.inference --unet_config_path {config_path} --inference_ckpt_path {ckpt_path} --inference-steps {inference_steps} --guidance_scale {str(guidance_scale)} --video_path {video_path} --audio_path {audio_path} --video_out_path {output_path} --seed {seed}"
+            f"python -m scripts.inference --unet_config_path {config_path} --inference_ckpt_path {ckpt_path} --inference_steps {inference_steps} --guidance_scale {str(guidance_scale)} --video_path {video_path} --audio_path {audio_path} --video_out_path {output_path} --seed {seed}"
         )
         return Path(output_path)

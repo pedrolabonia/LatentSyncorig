@@ -1,4 +1,6 @@
+import subprocess
 import gradio as gr
+import spaces
 from pathlib import Path
 from scripts.inference import main
 from omegaconf import OmegaConf
@@ -12,12 +14,27 @@ from latentsync.models.unet import UNet3DConditionModel
 from latentsync.pipelines.lipsync_pipeline import LipsyncPipeline
 from accelerate.utils import set_seed
 from latentsync.whisper.audio2feature import Audio2Feature
-import spaces
+
+def check_model_and_download(ckpt_path: str, huggingface_model_id: str = "ByteDance/LatentSync-1.5"):
+    if not os.path.exists(ckpt_path):
+        ckpt_path_obj = Path(ckpt_path)
+        download_cmd = f"huggingface-cli download {huggingface_model_id} {Path(*ckpt_path_obj.parts[1:])} --local-dir {Path(ckpt_path_obj.parts[0])}"
+        subprocess.run(download_cmd, shell=True)
+
+
+check_model_and_download("checkpoints/auxiliary/syncnet_v2.model")
+check_model_and_download("checkpoints/auxiliary/sfd_face.pth")
+check_model_and_download("checkpoints/auxiliary/koniq_pretrained.pkl")
+check_model_and_download("checkpoints/latentsync_unet.pt")
+check_model_and_download("checkpoints/whisper/tiny.pt")
+
+
+
 
 CONFIG_PATH = Path("configs/unet/stage2.yaml")
 CHECKPOINT_PATH = Path("checkpoints/latentsync_unet.pt")
 
-@spaces.GPU
+@spaces.GPU(timeout=0)
 def main(config, args):
     if not os.path.exists(args.video_path):
         raise RuntimeError(f"Video path '{args.video_path}' not found")
