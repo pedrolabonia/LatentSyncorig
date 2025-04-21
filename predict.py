@@ -69,7 +69,7 @@ class Predictor(BasePredictor):
             "scripts.inference",
             "--unet_config_path", config_path,
             "--inference_ckpt_path", ckpt_path,
-            "--inference_steps", inference_steps,
+            "--inference_steps", str(inference_steps),
             "--guidance_scale", str(guidance_scale),
             "--video_path", video_path,
             "--audio_path", audio_path,
