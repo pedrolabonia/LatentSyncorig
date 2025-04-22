@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y \
 
 # Copy requirements and install Python dependencies
 COPY requirements.txt /requirements.txt
-RUN uv pip install --upgrade -r /requirements.txt --no-cache-dir --system
+RUN uv pip install --upgrade -r /requirements.txt --no-cache-dir -- --system
 
 # Add additional dependencies for MinIO
 RUN uv pip install minio python-dotenv --no-cache-dir --system
