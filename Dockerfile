@@ -7,20 +7,26 @@ WORKDIR /app
 RUN ln -sf $(which python3.11) /usr/local/bin/python && \
     ln -sf $(which python3.11) /usr/local/bin/python3
 
-# Install system dependencies
+# Install system dependencies (removed curl, tar, gzip, which as not needed for pip)
 RUN apt-get update && apt-get install -y \
     ffmpeg \
     libgl1 \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install Python dependencies
-COPY requirements.txt /requirements.txt
-RUN uv pip install --upgrade -r /requirements.txt --no-cache-dir -- --system
+# UV-specific environment variables are not needed for pip system installs
+# ENV UV_PYTHON_PREFERENCE="only-system"
+# ENV UV_PROJECT_ENVIRONMENT="/usr/local/" # Not needed
 
-# Add additional dependencies for MinIO
-RUN uv pip install minio python-dotenv --no-cache-dir --system
+# Copy pyproject.toml into the working directory where pip install . will find it
+COPY pyproject.toml /app/pyproject.toml
 
-# Copy necessary code and configs
+# Install dependencies from pyproject.toml using pip
+# pip install . looks for pyproject.toml in the current directory (/app)
+# and installs the 'project.dependencies' into the active python environment (system)
+# --no-cache-dir is used to reduce the size of the Docker image layer.
+RUN pip install . --no-cache-dir
+
+# Copy necessary code and configs AFTER dependencies are installed
 COPY scripts/ /app/scripts/
 COPY latentsync/ /app/latentsync/
 COPY configs/ /app/configs/
