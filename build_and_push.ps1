@@ -18,7 +18,7 @@ if (-not $DockerUsername) {
 $FullImageName = "$DockerUsername/$ImageName`:$Tag"
 
 Write-Host "Building Docker image: $FullImageName"
-docker build -t $FullImageName .
+docker build --platform linux/amd64 -t $FullImageName .
 
 # Check if build was successful
 if ($LASTEXITCODE -ne 0) {

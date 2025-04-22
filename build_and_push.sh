@@ -17,7 +17,7 @@ fi
 FULL_IMAGE_NAME="$DOCKER_USERNAME/$IMAGE_NAME:$TAG"
 
 echo "Building Docker image: $FULL_IMAGE_NAME"
-docker build -t "$FULL_IMAGE_NAME" .
+docker build --platform linux/amd64 -t "$FULL_IMAGE_NAME" .
 
 # Check if build was successful
 if [ $? -ne 0 ]; then
