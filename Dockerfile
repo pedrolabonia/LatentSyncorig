@@ -26,11 +26,16 @@ COPY pyproject.toml /app/pyproject.toml
 # --no-cache-dir is used to reduce the size of the Docker image layer.
 RUN pip install . --no-cache-dir
 
+
+RUN python -c 'from insightface.utils.storage import download; download("models", "buffalo_l", root="checkpoints/auxiliary")'
+RUN huggingface-cli download ByteDance/LatentSync-1.5 whisper/tiny.pt --local-dir checkpoints
+RUN huggingface-cli download ByteDance/LatentSync-1.5 latentsync_unet.pt --local-dir checkpoints
 # Copy necessary code and configs AFTER dependencies are installed
+
 COPY scripts/ /app/scripts/
 COPY latentsync/ /app/latentsync/
 COPY configs/ /app/configs/
-COPY checkpoints/ /app/checkpoints/
+# COPY checkpoints/ /app/checkpoints/
 # COPY .env /app/.env
 COPY handler.py /app/
 
