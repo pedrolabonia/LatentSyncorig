@@ -31,7 +31,6 @@ minio_client = Minio(
     MINIO_ENDPOINT.replace("https://", "").replace("http://", ""),
     access_key=MINIO_ACCESS_KEY,
     secret_key=MINIO_SECRET_KEY,
-    secure=MINIO_ENDPOINT.startswith("https")
 )
 
 # Ensure bucket exists
@@ -39,18 +38,6 @@ try:
     if not minio_client.bucket_exists(MINIO_BUCKET):
         minio_client.make_bucket(MINIO_BUCKET)
         # Set bucket policy to allow public read access
-        policy = {
-            "Version": "2012-10-17",
-            "Statement": [
-                {
-                    "Effect": "Allow",
-                    "Principal": {"AWS": "*"},
-                    "Action": ["s3:GetObject"],
-                    "Resource": [f"arn:aws:s3:::{MINIO_BUCKET}/*"]
-                }
-            ]
-        }
-        minio_client.set_bucket_policy(MINIO_BUCKET, json.dumps(policy))
 except Exception as e:
     print(f"Warning: Could not ensure bucket exists or set policy: {str(e)}")
 
@@ -154,7 +141,6 @@ def upload_to_minio(local_path, minio_path):
         url = minio_client.presigned_get_object(
             bucket_name, 
             object_name,
-            expires=604800
         )
         
         return url
