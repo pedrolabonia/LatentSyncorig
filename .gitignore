@@ -4,6 +4,8 @@
 # macOS dir files
 .DS_Store
 
+.env
+uv.lock
 # VS Code configuration dir
 .vscode/
 
