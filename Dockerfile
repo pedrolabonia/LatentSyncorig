@@ -31,7 +31,7 @@ COPY scripts/ /app/scripts/
 COPY latentsync/ /app/latentsync/
 COPY configs/ /app/configs/
 COPY checkpoints/ /app/checkpoints/
-COPY .env /app/.env
+# COPY .env /app/.env
 COPY handler.py /app/
 
 # Set environment variables
