@@ -1,8 +1,28 @@
 # Prediction interface for Cog ⚙️
 # https://cog.run/python
 
-from cog import BasePredictor, Input, Path
+# Set ONNXRuntime environment variables before any imports
 import os
+os.environ['ORT_DISABLE_THREAD_AFFINITY'] = '1'
+os.environ['ORT_THREAD_POOL_ALLOW_SPINNING'] = '0'
+os.environ['OMP_NUM_THREADS'] = '1'
+os.environ['ORT_NUM_THREADS'] = '1'
+os.environ['ONNXRUNTIME_DISABLE_TELEMETRY'] = '1'
+
+# Initialize ONNXRuntime with our desired settings before any other imports
+import onnxruntime as ort
+print(f"Initializing ONNXRuntime {ort.__version__} with thread affinity disabled")
+print(f"Available providers: {ort.get_available_providers()}")
+
+# Create a session options object with our desired settings
+session_options = ort.SessionOptions()
+session_options.intra_op_num_threads = 1
+session_options.inter_op_num_threads = 1
+session_options.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
+print("Created ONNXRuntime SessionOptions with thread affinity disabled")
+
+# Now import everything else
+from cog import BasePredictor, Input, Path
 import time
 import subprocess
 
@@ -42,6 +62,7 @@ class Predictor(BasePredictor):
         video: Path = Input(description="Input video", default=None),
         audio: Path = Input(description="Input audio to ", default=None),
         guidance_scale: float = Input(description="Guidance scale", ge=1, le=2.5, default=1.5),
+        inference_steps: int = Input(description="Number of inference steps", ge=1, le=50, default=20),
         seed: int = Input(description="Set to 0 for Random seed", default=0),
     ) -> Path:
         """Run a single prediction on the model"""
@@ -54,9 +75,32 @@ class Predictor(BasePredictor):
         config_path = "configs/unet/stage2.yaml"
         ckpt_path = "checkpoints/latentsync_unet.pt"
         output_path = "/tmp/video_out.mp4"
+        env = os.environ.copy()
+        
+        # Environment variables are already set at the module level
+        # Just pass them through to the subprocess
+        
+        # Log the environment variables
+        print(f"Using environment variables set at the beginning of predict.py")
+        # --- End added lines ---
 
-        # Run the following command:
-        os.system(
-            f"python -m scripts.inference --unet_config_path {config_path} --inference_ckpt_path {ckpt_path} --guidance_scale {str(guidance_scale)} --video_path {video_path} --audio_path {audio_path} --video_out_path {output_path} --seed {seed}"
-        )
+        # Command as a list for subprocess.run
+        command = [
+            "python",
+            "-m",
+            "scripts.inference",
+            "--unet_config_path", config_path,
+            "--inference_ckpt_path", ckpt_path,
+            "--inference_steps", str(inference_steps),
+            "--guidance_scale", str(guidance_scale),
+            "--video_path", video_path,
+            "--audio_path", audio_path,
+            "--video_out_path", output_path,
+            "--seed", str(seed)
+        ]
+
+        # Run the command using subprocess.run
+        # Pass the modified environment explicitly
+        subprocess.run(command, check=True, env=env)
+
         return Path(output_path)

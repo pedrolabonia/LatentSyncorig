@@ -283,9 +283,11 @@ class LipsyncPipeline(DiffusionPipeline):
 
     def loop_video(self, whisper_chunks: list, video_frames: np.ndarray):
         # If the audio is longer than the video, we need to loop the video
+        print(f"Looping video frames {len(video_frames)} to match audio chunks {len(whisper_chunks)}")
         if len(whisper_chunks) > len(video_frames):
             faces, boxes, affine_matrices = self.affine_transform_video(video_frames)
             num_loops = math.ceil(len(whisper_chunks) / len(video_frames))
+            print("num_loops", num_loops)   
             loop_video_frames = []
             loop_faces = []
             loop_boxes = []
@@ -301,15 +303,23 @@ class LipsyncPipeline(DiffusionPipeline):
                     loop_faces.append(faces.flip(0))
                     loop_boxes += boxes[::-1]
                     loop_affine_matrices += affine_matrices[::-1]
-
+            print("loop_video_frames", len(loop_video_frames))
+            print("loop_faces", len(loop_faces))
+            print("loop_boxes", len(loop_boxes))
+            print("loop_affine_matrices", len(loop_affine_matrices))
             video_frames = np.concatenate(loop_video_frames, axis=0)[: len(whisper_chunks)]
             faces = torch.cat(loop_faces, dim=0)[: len(whisper_chunks)]
             boxes = loop_boxes[: len(whisper_chunks)]
             affine_matrices = loop_affine_matrices[: len(whisper_chunks)]
+            print("video_frames", len(video_frames))
+            print("faces", len(faces))
+            print("boxes", len(boxes))
+            print("affine_matrices", len(affine_matrices))
+            
         else:
             video_frames = video_frames[: len(whisper_chunks)]
             faces, boxes, affine_matrices = self.affine_transform_video(video_frames)
-
+        print("will return")
         return video_frames, faces, boxes, affine_matrices
 
     @torch.no_grad()
@@ -344,15 +354,16 @@ class LipsyncPipeline(DiffusionPipeline):
         device = self._execution_device
         mask_image = load_fixed_mask(height, mask_image_path)
         self.image_processor = ImageProcessor(height, device="cuda", mask_image=mask_image)
+        print("image processor initialized")
         self.set_progress_bar_config(desc=f"Sample frames: {num_frames}")
 
         # 1. Default height and width to unet
         height = height or self.denoising_unet.config.sample_size * self.vae_scale_factor
         width = width or self.denoising_unet.config.sample_size * self.vae_scale_factor
-
+        print(f"height: {height}, width: {width}")
         # 2. Check inputs
         self.check_inputs(height, width, callback_steps)
-
+        print("checked inputs")
         # here `guidance_scale` is defined analog to the guidance weight `w` of equation (2)
         # of the Imagen paper: https://arxiv.org/pdf/2205.11487.pdf . `guidance_scale = 1`
         # corresponds to doing no classifier free guidance.
@@ -369,8 +380,9 @@ class LipsyncPipeline(DiffusionPipeline):
         whisper_chunks = self.audio_encoder.feature2chunks(feature_array=whisper_feature, fps=video_fps)
 
         audio_samples = read_audio(audio_path)
+        print("read audio samples")
         video_frames = read_video(video_path, use_decord=False)
-
+        print("read video frames")
         video_frames, faces, boxes, affine_matrices = self.loop_video(whisper_chunks, video_frames)
 
         synced_video_frames = []
@@ -388,7 +400,7 @@ class LipsyncPipeline(DiffusionPipeline):
             device,
             generator,
         )
-
+        print("prepared latents")
         num_inferences = math.ceil(len(whisper_chunks) / num_frames)
         for i in tqdm.tqdm(range(num_inferences), desc="Doing inference..."):
             if self.denoising_unet.add_audio_layer:
