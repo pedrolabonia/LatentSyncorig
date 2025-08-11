@@ -87,10 +87,7 @@ def load_models():
         device="cuda",
         num_frames=global_config.data.num_frames,
         audio_feat_length=global_config.data.audio_feat_length,
-    )
-    
-    # Load denoising UNet
-    
+    )   
     unet, _ = UNet3DConditionModel.from_pretrained(
         OmegaConf.to_container(global_config.model),
         inference_ckpt_path,
@@ -155,7 +152,7 @@ def run_inference(video_path, audio_path, output_path, guidance_scale=1.0, seed=
     """Run inference using the preloaded models."""
     global global_config, global_scheduler, global_vae, global_audio_encoder
     
-    # If models are not preloaded, load them now
+    # If models are not preloaded, load them now 
     if global_config is None:
         try:
             load_models()

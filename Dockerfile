@@ -25,7 +25,7 @@ COPY pyproject.toml /app/pyproject.toml
 # and installs the 'project.dependencies' into the active python environment (system)
 # --no-cache-dir is used to reduce the size of the Docker image layer.
 RUN pip install . --no-cache-dir
-
+RUN pip install DeepCache
 RUN python -c 'print("chegou")'
 RUN python -c 'from insightface.utils.storage import download; download("models", "buffalo_l", root="checkpoints/auxiliary")'
 RUN pip install hf_transfer
