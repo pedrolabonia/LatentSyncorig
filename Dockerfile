@@ -29,8 +29,8 @@ RUN pip install . --no-cache-dir
 RUN python -c 'print("chegou")'
 RUN python -c 'from insightface.utils.storage import download; download("models", "buffalo_l", root="checkpoints/auxiliary")'
 RUN pip install hf_transfer
-RUN huggingface-cli download ByteDance/LatentSync-1.5 whisper/tiny.pt --local-dir checkpoints
-RUN huggingface-cli download ByteDance/LatentSync-1.5 latentsync_unet.pt --local-dir checkpoints
+RUN huggingface-cli download ByteDance/LatentSync-1.6 whisper/tiny.pt --local-dir checkpoints
+RUN huggingface-cli download ByteDance/LatentSync-1.6 latentsync_unet.pt --local-dir checkpoints
 # Copy necessary code and configs AFTER dependencies are installed
 
 COPY scripts/ /app/scripts/
