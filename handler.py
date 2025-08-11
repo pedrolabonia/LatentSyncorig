@@ -15,7 +15,10 @@ import torch
 from omegaconf import OmegaConf
 from diffusers import AutoencoderKL, DDIMScheduler
 from latentsync.models.unet import UNet3DConditionModel
+from latentsync.pipelines.lipsync_pipeline import LipsyncPipeline
 from latentsync.whisper.audio2feature import Audio2Feature
+from DeepCache import DeepCacheSDHelper
+from accelerate.utils import set_seed
 
 # Load environment variables from .env file
 load_dotenv()
@@ -46,17 +49,16 @@ global_config = None
 global_scheduler = None
 global_vae = None
 global_audio_encoder = None
-global_denoising_unet = None
-
+inference_ckpt_path = "checkpoints/latentsync_unet.pt"
 # Load models into memory
 def load_models():
     """Preload models into memory to speed up inference."""
-    global global_config, global_scheduler, global_vae, global_audio_encoder, global_denoising_unet
+    global global_config, global_scheduler, global_vae, global_audio_encoder
     
     print("Loading models into memory...")
     
     # Load config
-    config_path = "configs/unet/stage2.yaml"
+    config_path = "configs/unet/stage2_512.yaml"
     global_config = OmegaConf.load(config_path)
     
     # Check if GPU supports float16
@@ -88,13 +90,14 @@ def load_models():
     )
     
     # Load denoising UNet
-    inference_ckpt_path = "checkpoints/latentsync_unet.pt"
-    global_denoising_unet, _ = UNet3DConditionModel.from_pretrained(
+    
+    unet, _ = UNet3DConditionModel.from_pretrained(
         OmegaConf.to_container(global_config.model),
         inference_ckpt_path,
-        device="cuda",
+        device="cpu",
     )
-    global_denoising_unet = global_denoising_unet.to(dtype=dtype)
+
+    unet = unet.to(dtype=dtype)
     
     print("Models loaded successfully")
 
@@ -148,9 +151,9 @@ def upload_to_minio(local_path, minio_path):
         print(f"Error uploading to MinIO: {str(e)}")
         return None
 
-def run_inference(video_path, audio_path, output_path, guidance_scale=1.0, seed=1247):
+def run_inference(video_path, audio_path, output_path, guidance_scale=1.0, seed=1247, inference_steps=20):
     """Run inference using the preloaded models."""
-    global global_config, global_scheduler, global_vae, global_audio_encoder, global_denoising_unet
+    global global_config, global_scheduler, global_vae, global_audio_encoder
     
     # If models are not preloaded, load them now
     if global_config is None:
@@ -163,44 +166,71 @@ def run_inference(video_path, audio_path, output_path, guidance_scale=1.0, seed=
     # Check if the GPU supports float16
     is_fp16_supported = torch.cuda.is_available() and torch.cuda.get_device_capability()[0] > 7
     dtype = torch.float16 if is_fp16_supported else torch.float32
-    
-    # Create pipeline
-    from latentsync.pipelines.lipsync_pipeline import LipsyncPipeline
+
+    print(f"Input video path: {video_path}")
+    print(f"Input audio path: {audio_path}")
+    print(f"Loaded checkpoint path: {inference_ckpt_path}")
+
+    scheduler = DDIMScheduler.from_pretrained("configs")
+
+    if global_config.model.cross_attention_dim == 768:
+        whisper_model_path = "checkpoints/whisper/small.pt"
+    elif global_config.model.cross_attention_dim == 384:
+        whisper_model_path = "checkpoints/whisper/tiny.pt"
+    else:
+        raise NotImplementedError("cross_attention_dim must be 768 or 384")
+
+    audio_encoder = Audio2Feature(
+        model_path=whisper_model_path,
+        device="cuda",
+        num_frames=global_config.data.num_frames,
+        audio_feat_length=global_config.data.audio_feat_length,
+    )
+
+    vae = AutoencoderKL.from_pretrained("stabilityai/sd-vae-ft-mse", torch_dtype=dtype)
+    vae.config.scaling_factor = 0.18215
+    vae.config.shift_factor = 0
+
+    unet, _ = UNet3DConditionModel.from_pretrained(
+        OmegaConf.to_container(global_config.model),
+        inference_ckpt_path,
+        device="cpu",
+    )
+
+    unet = unet.to(dtype=dtype)
+
     pipeline = LipsyncPipeline(
-        vae=global_vae,
-        audio_encoder=global_audio_encoder,
-        denoising_unet=global_denoising_unet,
-        scheduler=global_scheduler,
+        vae=vae,
+        audio_encoder=audio_encoder,
+        unet=unet,
+        scheduler=scheduler,
     ).to("cuda")
-    
-    # Set seed
+
+    # use DeepCache
+
+    helper = DeepCacheSDHelper(pipe=pipeline)
+    helper.set_params(cache_interval=3, cache_branch_id=0)
+    helper.enable()
+
     if seed != -1:
-        from accelerate.utils import set_seed
         set_seed(seed)
     else:
         torch.seed()
-    
+
     print(f"Initial seed: {torch.initial_seed()}")
-    
-    # Run inference
-    try:
-        pipeline(
-            video_path=video_path,
-            audio_path=audio_path,
-            video_out_path=output_path,
-            video_mask_path=output_path.replace(".mp4", "_mask.mp4"),
-            num_frames=global_config.data.num_frames,
-            num_inference_steps=20,  # Default value from inference.py
-            guidance_scale=guidance_scale,
-            weight_dtype=dtype,
-            width=global_config.data.resolution,
-            height=global_config.data.resolution,
-            mask_image_path=global_config.data.mask_image_path,
-        )
-        return True
-    except Exception as e:
-        print(f"Error during inference: {str(e)}")
-        return False
+
+    pipeline(
+        video_path=video_path,
+        audio_path=audio_path,
+        video_out_path=output_path,
+        num_frames=global_config.data.num_frames,
+        num_inference_steps=inference_steps,
+        guidance_scale=guidance_scale,
+        weight_dtype=dtype,
+        width=global_config.data.resolution,
+        height=global_config.data.resolution,
+        mask_image_path=global_config.data.mask_image_path,
+    )
 
 def handler(job):
     """Handler function that will be used to process jobs."""
