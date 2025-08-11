@@ -8,7 +8,7 @@
 uv.lock
 # VS Code configuration dir
 .vscode/
-
+.env
 # Jupyter Notebook cache files
 .ipynb_checkpoints/
 *.ipynb
