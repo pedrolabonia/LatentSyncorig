@@ -17,7 +17,6 @@ from diffusers import AutoencoderKL, DDIMScheduler
 from latentsync.models.unet import UNet3DConditionModel
 from latentsync.pipelines.lipsync_pipeline import LipsyncPipeline
 from latentsync.whisper.audio2feature import Audio2Feature
-from DeepCache import DeepCacheSDHelper
 from accelerate.utils import set_seed
 
 # Load environment variables from .env file
@@ -107,6 +106,7 @@ except Exception as e:
 
 def download_from_minio(minio_path, local_path):
     """Download a file from MinIO to a local path."""
+    print("=========trying to download from minio=========")
     try:
         # Parse MinIO path
         if minio_path.startswith('minio://'):
@@ -124,6 +124,7 @@ def download_from_minio(minio_path, local_path):
         return False
 
 def upload_to_minio(local_path, minio_path):
+    print("=========trying to upload to minio=========")
     """Upload a file from a local path to MinIO and return a public URL."""
     try:
         # Parse MinIO path
@@ -203,11 +204,6 @@ def run_inference(video_path, audio_path, output_path, guidance_scale=1.0, seed=
         scheduler=scheduler,
     ).to("cuda")
 
-    # use DeepCache
-
-    helper = DeepCacheSDHelper(pipe=pipeline)
-    helper.set_params(cache_interval=3, cache_branch_id=0)
-    helper.enable()
 
     if seed != -1:
         set_seed(seed)
