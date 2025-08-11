@@ -46,12 +46,12 @@ class Predictor(BasePredictor):
 
         video_path = str(video)
         audio_path = str(audio)
-        config_path = "configs/unet/stage2.yaml"
+        config_path = "configs/unet/stage2_512.yaml"
         ckpt_path = "checkpoints/latentsync_unet.pt"
         output_path = "/tmp/video_out.mp4"
 
         # Run the following command:
         os.system(
-            f"python -m scripts.inference --unet_config_path {config_path} --inference_ckpt_path {ckpt_path} --guidance_scale {str(guidance_scale)} --video_path {video_path} --audio_path {audio_path} --video_out_path {output_path} --seed {seed} --inference_steps {inference_steps}"
+            f"python -m scripts.inference --unet_config_path {config_path} --inference_ckpt_path {ckpt_path} --guidance_scale {str(guidance_scale)} --video_path {video_path} --audio_path {audio_path} --video_out_path {output_path} --seed {seed} --inference_steps {inference_steps} --enable_deepcache"
         )
         return Path(output_path)
